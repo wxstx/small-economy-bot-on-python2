@@ -1,160 +1,106 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# small-discord-bot-on-python
+import discord
+from discord.ext import commands
+from discord.utils import get
+from config import *
+import json
+import sys
+import discord, random
+import random
 
-# C extensions
-*.so
+TOKEN = "your token here"
+PREFIX = "!"
+WALLET_DEFAULT = {"balance": 0}
+client = commands.Bot(command_prefix=PREFIX, intents=discord.Intents.all())
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+@client.command()
+async def ping(ctx):
+  await ctx.send("pong!")
+  await ctx.send(ctx.author.name)
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
 
-# Translations
-*.mo
-*.pot
+async def get_user_wallet(user_id):
+  user_id = str(user_id)
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+  with open("wallets.json", "r") as file:
+    users_wallets = json.load(file)
 
-# Flask stuff:
-instance/
-.webassets-cache
+  if user_id not in users_wallets.keys():
+    users_wallets[user_id] = WALLET_DEFAULT
 
-# Scrapy stuff:
-.scrapy
+  with open("wallets.json", "w") as file:
+    json.dump(users_wallets, file)
 
-# Sphinx documentation
-docs/_build/
+  return users_wallets[user_id]
 
-# PyBuilder
-.pybuilder/
-target/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+async def set_user_wallet(user_id, parameter, new_value):
+  user_id = str(user_id)
 
-# IPython
-profile_default/
-ipython_config.py
+  with open("wallets.json", "r") as file:
+    users_wallets = json.load(file)
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
+  if user_id not in users_wallets.keys():
+    users_wallets[user_id] = WALLET_DEFAULT
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+  users_wallets[user_id][parameter] = new_value
 
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
+  with open("wallets.json", "w") as file:
+    json.dump(users_wallets, file)
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/#use-with-ide
-.pdm.toml
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
+@client.command()
+async def balance(ctx):
+  user_wallet = await get_user_wallet(ctx.author.id)
+  await ctx.send(f"Ваш баланс: {user_wallet['balance']}")
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
 
-# SageMath parsed files
-*.sage.py
+@client.command()
+async def change_balance(ctx, user_mention=None, amount=None):
+  if not ctx.author.guild_permissions.administrator:
+    await ctx.send("**Недостаточно прав!**")
+    return
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+  if user_mention is None or amount is None:
+    await ctx.send(f"**Вы не указали тот или иной параметр!**")
 
-# Spyder project settings
-.spyderproject
-.spyproject
+  user = get(ctx.guild.members, id=int(user_mention[2:-1]))
+  user_wallet = await get_user_wallet(user.id)
+  user_wallet["balance"] += int(amount)
+  await set_user_wallet(user.id, "balance", user_wallet['balance'])
 
-# Rope project settings
-.ropeproject
+  await ctx.send(f"Баланс {user.name} был успешно изменён!\n" \
+                 f"**Баланс {user.name}**: {user_wallet['balance']}")
 
-# mkdocs documentation
-/site
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+@client.event
+async def on_ready():
+  print("Бот запустился!")
 
-# Pyre type checker
-.pyre/
 
-# pytype static type analyzer
-.pytype/
+@client.command()
+async def kill(ctx):
+  if not ctx.author.guild_permissions.administrator:
+    await ctx.send("**Недостаточно прав!**")
+    return
+  sys.exit()
 
-# Cython debug symbols
-cython_debug/
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+@client.command()
+async def randomh(ctx):
+  randomk = ['Орёл', 'Решка']
+  await ctx.send(f'Выпало: {random.choice(randomk)}')
+
+
+@client.command()
+async def hlp(ctx):
+  await ctx.send(
+      'Привет! Это бот для фарма виртуальной валюты! Ты можешь выиграть виртуальную валюту и обменять её на деньги или же предметы в игре и тд, с ценами можно ознакомиться тут - https://discord.com/channels/1169560374979342406/1169711498919170158 ! Виртуальную валюту можно выиграть пока что только в розыгрышах. У бота есть такие команды как: !hlp - помощь, !balance - проверка своего баланса, !randomh - игра в орёл или решка! За покупкой обращаться в лс к owner!'
+  )
+
+
+client.run(token=TOKEN)
+
